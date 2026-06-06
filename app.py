@@ -17,20 +17,23 @@ app = Flask(__name__)
 
 # 2. MySQL database configuration:
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:Murphy324!!@localhost/ecommerce_api'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # disable track modifications
 
-# 3. Create Base Model:
+
+# 3. Base Class Model:
 class Base(DeclarativeBase):
     pass
 
-# 4. Initialize Extension Classes: SQLAlchemy + Marshmallow
+
+# 4. Initialization: SQLAlchemy + Marshmallow
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 ma = Marshmallow(app)
 
 
+
 # [DATABASE MODELS]:
-# 1. Order_Product Association Table:
+# Order_Product Association Table:
 order_product = Table(
     "order_product",
     Base.metadata,
@@ -38,7 +41,7 @@ order_product = Table(
     Column("product_id", ForeignKey("products.id"), primary_key=True)
 )
 
-# 2. User Table:
+# 1. User Table:
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -51,7 +54,7 @@ class User(Base):
     orders: Mapped[List["Order"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
-# 3. Order Table:
+# 2. Order Table:
 class Order(Base):
     __tablename__ = "orders"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -66,7 +69,7 @@ class Order(Base):
     user: Mapped["User"] = relationship(back_populates="orders")
 
 
-# 4. Product Table:
+# 3. Product Table:
 class Product(Base):
     __tablename__ = "products"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -110,19 +113,17 @@ products_schema = ProductSchema(many=True)
 
 # [CRUD ENDPOINTS]:
 
-# 1. USER endpoints:
+# (1) USER endpoints:
 # ===========================================================================
-# > U-1) Retrieve all users: GET
+# > U-1) Get all users: (GET)
 @app.route("/users", methods=["GET"])
-
 def get_users():
     query = select(User)
     users = db.session.execute(query).scalars().all()
     return users_schema.jsonify(users), 200
     
-# > U-2) Retrieve a user by ID: GET
+# > U-2) Get a single user by ID: (GET)
 @app.route("/users/<int:id>", methods=["GET"])
-
 def get_user(id):
     user = db.session.get(User, id)
     
@@ -131,9 +132,8 @@ def get_user(id):
               
     return user_schema.jsonify(user), 200
 
-# > U-3) Create a new user: POST
+# > U-3) Create a new user: (POST)
 @app.route("/users", methods=["POST"])
-
 def create_user():
     try:
         user_data = user_schema.load(request.json)
@@ -145,9 +145,8 @@ def create_user():
     db.session.commit()
     return user_schema.jsonify(new_user), 201
 
-# > U-4) Update a user by ID: PUT
+# > U-4) Update a user by ID: (PUT)
 @app.route("/users/<int:id>", methods=["PUT"])
-
 def update_user(id):
     user = db.session.get(User, id)
     
@@ -166,9 +165,8 @@ def update_user(id):
     db.session.commit()
     return user_schema.jsonify(user), 200
 
-# > U-5) Delete a user by ID: DELETE
+# > U-5) Delete a user by ID: (DELETE)
 @app.route("/users/<int:id>", methods=["DELETE"])
-
 def delete_user(id):
     user = db.session.get(User, id)
     
@@ -180,19 +178,17 @@ def delete_user(id):
     return jsonify({"Message": f"The user {user.name} ({id}) was successfully deleted!"}), 200
 
 
-# 2. PRODUCT endpoints:
+# (2) PRODUCT endpoints:
 # ===========================================================================
-# > P-1) Retrieve all products: GET
+# > P-1) Retrieve all products: (GET)
 @app.route("/products", methods=["GET"])
-
 def get_products():
     query = select(Product)
     products = db.session.execute(query).scalars().all()
     return products_schema.jsonify(products), 200
 
-# > P-2) Retrieve a product by ID: GET
+# > P-2) Retrieve a product by ID: (GET)
 @app.route("/products/<int:id>", methods=["GET"])
-
 def get_product(id):
     product = db.session.get(Product, id)
     
@@ -201,9 +197,8 @@ def get_product(id):
     
     return product_schema.jsonify(product), 200
 
-# > P-3) Create a new product: POST
+# > P-3) Create a new product: (POST)
 @app.route("/products", methods=["POST"])
-
 def create_product():
     try:
         product_data = product_schema.load(request.json)
@@ -215,9 +210,8 @@ def create_product():
     db.session.commit()
     return product_schema.jsonify(new_product), 201
 
-# > P-4) Update a product by ID: PUT
+# > P-4) Update a product by ID: (PUT)
 @app.route("/products/<int:id>", methods=["PUT"])
-
 def update_product(id):
     product = db.session.get(Product, id)
     
@@ -235,9 +229,8 @@ def update_product(id):
     db.session.commit()
     return product_schema.jsonify(product), 200
 
-# > P-5) Delete a product by ID: DELETE
+# > P-5) Delete a product by ID: (DELETE)
 @app.route("/products/<int:id>", methods=["DELETE"])
-
 def delete_product(id):
     product = db.session.get(Product, id)
     
@@ -249,11 +242,11 @@ def delete_product(id):
     return jsonify({"Message": f"{product.product_name} product was successfully deleted!"}), 200
 
 
-# 3. ORDER endpoints:
-# ===========================================================================
-# > O-1) Create a new order: POST
-@app.route("/orders", methods=["POST"])
 
+# (3) ORDER endpoints:
+# ===========================================================================
+# > O-1) Create a new order: (POST)
+@app.route("/orders", methods=["POST"])
 def create_order():
     try:
         order_data = order_schema.load(request.json)
@@ -265,21 +258,21 @@ def create_order():
         return jsonify({"Message": "User not found"}), 404
     
     new_order = Order(user_id=order_data["user_id"])
-    
     db.session.add(new_order)
     db.session.commit()
     return order_schema.jsonify(new_order), 201
 
 
-# > 0-2) Add a product to an order: PUT
+# > O-2) Add a product to an order: (PUT)
 @app.route("/orders/<int:order_id>/add_product/<int:product_id>", methods=["PUT"])
-
 def add_product(order_id, product_id):
     order = db.session.get(Order, order_id)
+    
+    # < Checks:
     if not order: 
         return jsonify({"Message": "Order not found"}), 404
-    
     product = db.session.get(Product, product_id)
+    
     if not product: 
         return jsonify({"Message": "Product not found"}), 404
     
@@ -288,13 +281,11 @@ def add_product(order_id, product_id):
     
     order.products.append(product)
     db.session.commit()
-
     return jsonify({"Message": f"The product {product.product_name} was successfully added to order #{order.id}!"}), 200
 
 
-# > 0-3) Remove a product from an order: DELETE
+# > O-3) Remove a product from an order (DELETE)
 @app.route("/orders/<int:order_id>/remove_product/<int:product_id>", methods=["DELETE"])
-
 def remove_product(order_id, product_id):
     order = db.session.get(Order, order_id)
     if not order: 
@@ -307,14 +298,13 @@ def remove_product(order_id, product_id):
     if product not in order.products:
         return jsonify({"Message": "Product not found"}), 404
     
+    
     order.products.remove(product)
     db.session.commit()
-    
     return jsonify({"Message": f"{product.product_name} product was removed from order #{order.id}"}), 200
    
-# > 0-4) Get all orders for a user: GET
+# > O-4) Get all orders for a user: (GET)
 @app.route("/orders/user/<int:user_id>", methods=["GET"])
-
 def my_orders(user_id):
     user = db.session.get(User, user_id)
     
@@ -323,9 +313,8 @@ def my_orders(user_id):
         
     return orders_schema.jsonify(user.orders), 200
     
-# > 0-5) Get all products for an order: GET
+# > O-5) Get all products for an order: (GET)
 @app.route("/orders/<int:order_id>/products", methods=["GET"])
-
 def my_products(order_id):
     order = db.session.get(Order, order_id)
     
@@ -335,17 +324,16 @@ def my_products(order_id):
     return products_schema.jsonify(order.products), 200
 
 
-# + Bonus: Get order summary
+# + BONUS: Get Order Summary (GET)
 @app.route("/orders/<int:order_id>/summary", methods=["GET"])
-
 def order_summary(order_id):
     order = db.session.get(Order, order_id)
     
     if not order:
         return jsonify({"Message": "Order not found"}), 404
     
+    # < Calculations:
     total_items = len(order.products)
-    
     total_price = sum(product.price for product in order.products)
     
     return jsonify({
@@ -356,16 +344,17 @@ def order_summary(order_id):
         "total_items": total_items,
         "total_price": total_price,
     }), 200
+      
 
-        
-
-# ** CREATE TABLES IN DATABASE:
+# =! CREATE TABLES IN DATABASE:
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     
-    app.run(debug=True)
+    
+    app.run(debug=True) # debug mode
 
 
+# !! TESTING: TEST ENDPOINTS USING POSTMAN !!
 
 
